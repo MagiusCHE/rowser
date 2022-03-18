@@ -1,11 +1,12 @@
-# "Rowser": a Rust Browser
+# Rowser
+a Rust Browser
 
-# Develop
+## Develop
 - Requires: `rustc`,`yarn`
-# Compile/Build Debug Mode
+## Compile/Build Debug Mode
 - Linux: `yarn build`
 - Window: `yarn build:win`
-# Run
+## Run
 - Linux: `yarn start`
   - This will build and run using `cargo run`
 - Linux Wine: `yarn start:wine`
