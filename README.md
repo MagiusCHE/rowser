@@ -1,5 +1,7 @@
 # "Rowser": a Rust Browser
 
+# Develop
+- Requires: `rustc`,`yarn`
 # Compile/Build Debug Mode
 - Linux: `yarn build`
 - Window: `yarn build:win`
