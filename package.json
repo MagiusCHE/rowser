@@ -1,0 +1,15 @@
+{
+  "name": "rowser",
+  "version": "0.1.0",
+  "description": "A Rust-Browser",
+  "main": "cargo run",
+  "repository": "https://github.com/magiusche/rowser",
+  "author": "Magius(CHE) <magiusche@magius.it>",
+  "license": "MIT OR Apache-2.0",
+  "private": true,
+  "scripts": {
+    "start":"RUST_LOG=info cargo run -- $@",
+    "build:win": "rustup target add x86_64-pc-windows-gnu && rustup toolchain install stable-x86_64-pc-windows-gnu --force-non-host && cargo build --target x86_64-pc-windows-gnu",
+    "start:wine": "wine target/x86_64-pc-windows-gnu/debug/rowser.exe"
+  }
+}
