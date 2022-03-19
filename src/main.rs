@@ -27,8 +27,9 @@ use winit::{
     window::WindowBuilder,
 };
 
-mod gbuffer;
+use std::cell::RefCell;
 
+mod gbuffer;
 use gbuffer::GfBuffer;
 
 fn main() {
@@ -41,14 +42,20 @@ fn main() {
     //let url = Url::parse(&args.url).map_err(|err| CriticalError(format!("{:?}", err)))?;
     //info!("Url {:?}", url.as_str());
 
+    /*static event_loop: winit::event_loop::EventLoop<> =
+        EventLoop::new();
+    static window: winit::window::Window = WindowBuilder::new()
+        .with_title("Rowser")
+        .build(&event_loop)
+        .unwrap();*/
     let event_loop = EventLoop::new();
-    let window = WindowBuilder::new()
+    let window: winit::window::Window = WindowBuilder::new()
         .with_title("Rowser")
         .build(&event_loop)
         .unwrap();
 
-    let mut gfx_buffer = GfBuffer::new(&window);
-    info!("Begin loop");
+    //let mut gfx_buffer = GfBuffer::new(&window);
+    info!("Begin loop {:?}", event_loop);
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
@@ -57,7 +64,7 @@ fn main() {
                 event: WindowEvent::Resized(_),
                 window_id,
             } => {
-                gfx_buffer.resize();
+                //gfx_buffer.resize();
             }
             Event::MainEventsCleared => {
                 // Application update code.
@@ -72,10 +79,10 @@ fn main() {
             }
             Event::RedrawRequested(windowid) => {
                 info!("RedrawRequested");
-                if gfx_buffer.draw().is_err() {
+                /*if gfx_buffer.draw().is_err() {
                     error!("Error while drawing");
                     *control_flow = ControlFlow::Exit;
-                }
+                }*/
                 //let window_size = window.inner_size();
             }
             Event::WindowEvent {
