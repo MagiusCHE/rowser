@@ -12,7 +12,9 @@ keywords = ["browser", "os"]
 
 [dependencies]
 clap = { version = "3", features = ["derive"] }
-url = { version = "2"}
-log = { version = "0"}
 env_logger = { version = "0"}
+log = { version = "0"}
+pixels = { version = "0"}
+throw = { version = "0"}
+url = { version = "2"}
 winit = { version = "0" }
