@@ -4,31 +4,31 @@ use pixels::{Error, Pixels, SurfaceTexture};
 use std::cell::RefCell;
 
 #[derive(Debug)]
-pub struct GfBuffer<'win> {
-    surface_texture: &'win RefCell<SurfaceTexture<'win, winit::window::Window>>,
-    pixels: &'win RefCell<Pixels>,
-    window: &'win winit::window::Window,
+pub struct GfBuffer<'a> {
+    //surface_texture: &'a SurfaceTexture<'a, winit::window::Window>,
+    pixels: Pixels,
+    window: &'a winit::window::Window,
 }
-impl<'win> GfBuffer<'win> {
-    pub fn new(window: &'win winit::window::Window) -> Self {
+impl<'a> GfBuffer<'a> {
+    pub fn new(window: &'a winit::window::Window) -> Self {
         let window_size = window.inner_size();
-        let surface_texture = RefCell::new(SurfaceTexture::new(window_size.width, window_size.height, window));
-        let pixels = RefCell::new(Pixels::new(window_size.width, window_size.height, surface_texture.into_inner()).unwrap());
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, window);
+        let pixels = Pixels::new(window_size.width, window_size.height, surface_texture).unwrap();
         Self {
             window: window,
-            surface_texture: &surface_texture,
-            pixels: &pixels,
+            //surface_texture: &surface_texture,
+            pixels: pixels,
         }
     }
-    pub fn resize(&mut self, window: &winit::window::Window) {
-        let window_size = window.inner_size();
-        self.pixels.borrow()
+    pub fn resize(&mut self) {
+        let window_size = self.window.inner_size();
+        self.pixels
             .resize_surface(window_size.width, window_size.height);
-        self.pixels.borrow()
+        self.pixels
             .resize_buffer(window_size.width, window_size.height);
     }
     pub fn draw(&mut self) -> Result<(), Error> {
-        let frame = self.pixels.borrow().get_frame();
+        let frame = self.pixels.get_frame();
 
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
             let x = (i % 320 as usize) as i16;
@@ -45,6 +45,6 @@ impl<'win> GfBuffer<'win> {
             pixel.copy_from_slice(&rgba);
         }
 
-        self.pixels.borrow().render()
+        self.pixels.render()
     }
 }

@@ -31,7 +31,7 @@ mod gbuffer;
 
 use gbuffer::GfBuffer;
 
-fn main() -> Result<(), CriticalError> {
+fn main() {
     env_logger::init();
     let args = Cli::parse();
     /*info!("This is an Info!");
@@ -48,7 +48,7 @@ fn main() -> Result<(), CriticalError> {
         .unwrap();
 
     let mut gfx_buffer = GfBuffer::new(&window);
-
+    info!("Begin loop");
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
@@ -57,7 +57,7 @@ fn main() -> Result<(), CriticalError> {
                 event: WindowEvent::Resized(_),
                 window_id,
             } => {
-                gfx_buffer.resize(&window);
+                gfx_buffer.resize();
             }
             Event::MainEventsCleared => {
                 // Application update code.
@@ -81,10 +81,14 @@ fn main() -> Result<(), CriticalError> {
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 window_id,
-            } if window_id == window.id() => *control_flow = ControlFlow::Exit,
+            } if window_id == window.id() => {
+                info!("Exit from loop REQUESTED");
+                *control_flow = ControlFlow::Exit;
+            }
             _ => (),
         }
     });
 
-    Ok(())
+    info!("Exit from loop {:?}", window);
+    println!("Exit from loop");
 }
