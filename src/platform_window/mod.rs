@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 mod gbuffer;
+
 pub struct MainWindow {}
 
 use winit::{
@@ -11,9 +12,13 @@ use winit::{
 
 use std::{ptr::NonNull, rc::Rc};
 
-use gbuffer::GfBuffer;
+#[path="../graphic_dom/mod.rs"]
+mod graphic_dom;
+use graphic_dom::GfxRoot;
 
 use log::{debug, error, info, warn};
+
+use crate::platform_window::graphic_dom::TGfxDomElement;
 
 impl MainWindow {
     pub fn run<F>(&self, exit_handler: F)
@@ -28,7 +33,9 @@ impl MainWindow {
                 .unwrap(),
         );
 
-        let mut gfx_buffer = GfBuffer::new(window.clone());
+        let mut gfx_root = GfxRoot::new(window.clone());
+
+        //let mut gfx_buffer = GfBuffer::new(window.clone());
         info!("Begin loop {:?}", event_loop);
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Wait;
@@ -38,7 +45,7 @@ impl MainWindow {
                     event: WindowEvent::Resized(_),
                     window_id: _,
                 } => {
-                    gfx_buffer.resize();
+                    gfx_root.on_window_resize();
                 }
                 Event::MainEventsCleared => {
                     // Application update code.
@@ -50,14 +57,11 @@ impl MainWindow {
                     // can just render here instead.
                     //info!("MainEventsCleared");
                     //window.request_redraw();
+                    gfx_root.on_frame(0.0);
                 }
                 Event::RedrawRequested(_) => {
-                    info!("RedrawRequested");
-                    if gfx_buffer.draw().is_err() {
-                        error!("Error while drawing");
-                        *control_flow = ControlFlow::Exit;
-                    }
-                    //let window_size = window.inner_size();
+                    info!("Full RedrawRequested");
+                    gfx_root.on_full_redraw_requested();
                 }
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
@@ -67,6 +71,12 @@ impl MainWindow {
                     debug!("Window refcount: {}", Rc::strong_count(&window));
                     exit_handler();
                     *control_flow = ControlFlow::Exit;
+                }
+                Event::WindowEvent {
+                    event,
+                    window_id: _,
+                } => {
+                    debug!("Event::WindowEvent {:?}", event);
                 }
                 _ => (),
             }

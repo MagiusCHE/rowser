@@ -12,12 +12,16 @@ pub struct GfBuffer {
     pixels: Pixels,
     window: Rc<winit::window::Window>,
 }
+
+use pixels::wgpu::Color;
+
 impl GfBuffer {
     pub fn new(window: Rc<winit::window::Window>) -> Self {
         let window_size = window.inner_size();
         let surface_texture =
             SurfaceTexture::new(window_size.width, window_size.height, window.as_ref());
-        let pixels = Pixels::new(window_size.width, window_size.height, surface_texture).unwrap();
+        let mut pixels = Pixels::new(window_size.width, window_size.height, surface_texture).unwrap();
+        pixels.set_clear_color(Color::BLACK);
         Self {
             window: window,
             //surface_texture: &surface_texture,
@@ -33,8 +37,7 @@ impl GfBuffer {
     }
     pub fn draw(&mut self) -> Result<(), Error> {
         let frame = self.pixels.get_frame();
-        let window_size = self.window.inner_size();
-
+        let window_size = self.window.inner_size();        
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
             let x = (i % window_size.width as usize) as i16;
             let y = (i / window_size.width as usize) as i16;
