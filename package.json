@@ -8,7 +8,7 @@
   "license": "MIT OR Apache-2.0",
   "private": true,
   "scripts": {
-    "start":"RUST_LOG=info cargo run -- $@",
+    "start":"RUST_LOG=rowser cargo run -- $@",
     "build": "cargo build",
     "build:win": "rustup target add x86_64-pc-windows-gnu && rustup toolchain install stable-x86_64-pc-windows-gnu --force-non-host && cargo build --target x86_64-pc-windows-gnu",
     "start:wine": "wine target/x86_64-pc-windows-gnu/debug/rowser.exe"
