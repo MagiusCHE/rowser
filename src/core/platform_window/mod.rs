@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
-mod gbuffer;
 
 pub struct MainWindow {}
 
@@ -10,15 +9,15 @@ use winit::{
     window::WindowBuilder,
 };
 
-use std::{ptr::NonNull, rc::Rc};
+use std::{error::Error, ptr::NonNull, rc::Rc};
 
-#[path="../graphic_dom/mod.rs"]
+#[path = "../graphic_dom/mod.rs"]
 mod graphic_dom;
 use graphic_dom::GfxRoot;
 
 use log::{debug, error, info, warn};
 
-use crate::platform_window::graphic_dom::TGfxDomElement;
+use std::time::{Duration, Instant};
 
 impl MainWindow {
     pub fn run<F>(&self, exit_handler: F)
@@ -33,6 +32,7 @@ impl MainWindow {
                 .unwrap(),
         );
 
+        let mut last_frame_time = Instant::now();
         let mut gfx_root = GfxRoot::new(window.clone());
 
         //let mut gfx_buffer = GfBuffer::new(window.clone());
@@ -57,11 +57,12 @@ impl MainWindow {
                     // can just render here instead.
                     //info!("MainEventsCleared");
                     //window.request_redraw();
-                    gfx_root.on_frame(0.0);
+                    gfx_root.on_frame(last_frame_time.elapsed().as_secs_f64());
+                    last_frame_time = Instant::now();
                 }
                 Event::RedrawRequested(_) => {
                     info!("Full RedrawRequested");
-                    gfx_root.on_full_redraw_requested();
+                    gfx_root.invalidate();
                 }
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
@@ -73,10 +74,10 @@ impl MainWindow {
                     *control_flow = ControlFlow::Exit;
                 }
                 Event::WindowEvent {
-                    event,
+                    event: _,
                     window_id: _,
                 } => {
-                    debug!("Event::WindowEvent {:?}", event);
+                    //debug!("Event::WindowEvent {:?}", event);
                 }
                 _ => (),
             }

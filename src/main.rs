@@ -1,3 +1,4 @@
+//#![feature(globs)]
 use clap::Parser;
 
 //use url::{ParseError, Url};
@@ -14,8 +15,10 @@ struct Cli {
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
-mod platform_window;
-use platform_window::MainWindow;
+//#[path = "core/platform_window/mod.rs"]
+//mod platform_window;
+mod core;
+use crate::core::platform_window::MainWindow;
 
 fn main() {
     env_logger::init();
@@ -31,4 +34,18 @@ fn main() {
     main_window.run(|| {
         debug!("Application exit");
     });
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[allow(dead_code)]
+    //#[test]    
+    fn helper_1() {
+        let hexstrcolor = "0FFF";
+        let u = u8::from_str_radix(&hexstrcolor[2..4], 16);        
+        assert!(u.is_ok());
+        let val = u.unwrap();
+        assert!(val==255,"Expected {}, found {}", 255,val );
+    }
 }
