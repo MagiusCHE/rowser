@@ -5,16 +5,16 @@ use log::{debug, error, info, warn};
 
 use pixels::{Pixels, SurfaceTexture};
 
-//#[path = "../simple_error.rs"]
+#[path = "./simple_error.rs"]
 mod simple_error;
-use simple_error::SimpleError;
+use crate::core::simple_error::SimpleError;
 
 use std::rc::Rc;
 //use std::cell::RefCell;
 
-//#[path = "../geometry/mod.rs"]
+#[path = "./geometry.rs"]
 mod geometry;
-use geometry::{Rect, Size};
+use crate::core::geometry::{Rect, Size};
 
 #[derive(Debug)]
 pub struct GfxBuffer {
@@ -23,7 +23,7 @@ pub struct GfxBuffer {
     window: Rc<winit::window::Window>,
     window_size: Size,
 }
-
+#[path = "./color.rs"]
 mod color;
 use crate::core::color::Color;
 
@@ -85,6 +85,7 @@ impl GfxBuffer {
             pixel.copy_from_slice(&color.as_u8_ref());
         }
     }
+    #[allow(dead_code)]
     pub fn draw(&mut self) -> Result<(), SimpleError> {
         let frame = self.pixels.get_frame();
         let window_size = &self.window_size;

@@ -70,6 +70,13 @@ impl Rect {
     pub fn bottom(&self) -> i32 {
         self.position.left + self.size.width as i32
     }
+
+    pub fn intersect_rect(&self, rect: &Rect) -> bool {
+        !(rect.left() > self.right() || 
+           rect.right() < self.left() || 
+           rect.top() > self.bottom() ||
+           rect.bottom() < self.top())
+    }
 }
 impl Size {
     pub fn new(width: u16, height: u16) -> Size {

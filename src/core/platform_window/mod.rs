@@ -13,7 +13,8 @@ use std::{error::Error, ptr::NonNull, rc::Rc};
 
 #[path = "../graphic_dom/mod.rs"]
 mod graphic_dom;
-use graphic_dom::GfxRoot;
+use crate::core::graphic_dom::gfx_elem::{DomElement,CreateDomElement};
+use crate::core::graphic_dom::gfx_root::GfxRoot;
 
 use log::{debug, error, info, warn};
 
@@ -34,6 +35,8 @@ impl MainWindow {
 
         let mut last_frame_time = Instant::now();
         let mut gfx_root = GfxRoot::new(window.clone());
+
+        let mut sampl_elem = CreateDomElement(&gfx_root);
 
         //let mut gfx_buffer = GfBuffer::new(window.clone());
         info!("Begin loop {:?}", event_loop);
