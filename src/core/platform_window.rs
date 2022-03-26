@@ -11,10 +11,7 @@ use winit::{
 
 use std::{error::Error, ptr::NonNull, rc::Rc};
 
-#[path = "../graphic_dom/mod.rs"]
-mod graphic_dom;
-use crate::core::graphic_dom::gfx_elem::{DomElement,CreateDomElement};
-use crate::core::graphic_dom::gfx_root::GfxRoot;
+use super::dom::{DomElement, RootDomElement, PaintableDomElement};
 
 use log::{debug, error, info, warn};
 
@@ -34,9 +31,9 @@ impl MainWindow {
         );
 
         let mut last_frame_time = Instant::now();
-        let mut gfx_root = GfxRoot::new(window.clone());
+        let mut gfx_root = crate::core::dom::create_dom_element(None,  crate::core::dom::DomElementType::Root(window.clone()));
 
-        let mut sampl_elem = CreateDomElement(&gfx_root);
+        //let mut sampl_elem = dom::create_dom_element(Some(&gfx_root),dom::DomElementType::Span);
 
         //let mut gfx_buffer = GfBuffer::new(window.clone());
         info!("Begin loop {:?}", event_loop);

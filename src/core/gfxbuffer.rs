@@ -5,16 +5,12 @@ use log::{debug, error, info, warn};
 
 use pixels::{Pixels, SurfaceTexture};
 
-#[path = "./simple_error.rs"]
-mod simple_error;
-use crate::core::simple_error::SimpleError;
+use super::simple_error::SimpleError;
 
 use std::rc::Rc;
 //use std::cell::RefCell;
 
-#[path = "./geometry.rs"]
-mod geometry;
-use crate::core::geometry::{Rect, Size};
+use super::geometry::{Rect, Size};
 
 #[derive(Debug)]
 pub struct GfxBuffer {
@@ -23,9 +19,7 @@ pub struct GfxBuffer {
     window: Rc<winit::window::Window>,
     window_size: Size,
 }
-#[path = "./color.rs"]
-mod color;
-use crate::core::color::Color;
+use super::color::Color;
 
 impl GfxBuffer {
     pub fn new(window: Rc<winit::window::Window>) -> Self {
