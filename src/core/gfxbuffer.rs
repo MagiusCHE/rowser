@@ -24,7 +24,7 @@ use super::color::Color;
 impl GfxBuffer {
     pub fn new(window: Rc<winit::window::Window>) -> Self {
         let window_size = window.inner_size();
-        
+
         assert!(
             window_size.width < u16::MAX as u32 || window_size.height < u16::MAX as u32,
             "window_size({:?}) > {}",
@@ -41,8 +41,8 @@ impl GfxBuffer {
             //surface_texture: &surface_texture,
             pixels: pixels,
             window_size: Size {
-                width: window_size.width as u16,
-                height: window_size.height as u16,
+                width: window_size.width as f64,
+                height: window_size.height as f64,
             },
         }
     }
@@ -57,8 +57,8 @@ impl GfxBuffer {
         );
 
         self.window_size = Size {
-            width: window_size.width as u16,
-            height: window_size.height as u16,
+            width: window_size.width as f64,
+            height: window_size.height as f64,
         };
 
         self.pixels
@@ -73,10 +73,15 @@ impl GfxBuffer {
         }
         Ok(ret.unwrap())
     }
-    pub fn clear(&mut self, color: Color) {
+    pub fn clear(&mut self, rect: &Rect, color: Color) {
         let frame = self.pixels.get_frame();
-        for (_, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            pixel.copy_from_slice(&color.as_u8_ref());
+        let window_size = &self.window_size;
+        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
+            let x = i % window_size.width as usize;
+            let y = i / window_size.width as usize;
+            if rect.contains_xy(x as f64, y as f64) {
+                pixel.copy_from_slice(&color.as_u8_ref());
+            }
         }
     }
     #[allow(dead_code)]

@@ -4,14 +4,24 @@
 pub struct MainWindow {}
 
 use winit::{
-    event::{Event, WindowEvent},
+    event::{DeviceId, Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
 
-use std::{error::Error, ptr::NonNull, rc::Rc};
+use std::{
+    any::Any,
+    cell::{Ref, RefCell},
+    error::Error,
+    ptr::NonNull,
+    rc::Rc,
+};
 
-use super::dom::{DomElement, RootDomElement, PaintableDomElement};
+use super::dom::{
+    self, *, window_events::*
+};
+
+use super::geometry::*;
 
 use log::{debug, error, info, warn};
 
@@ -31,9 +41,8 @@ impl MainWindow {
         );
 
         let mut last_frame_time = Instant::now();
-        let mut gfx_root = crate::core::dom::create_dom_element(None,  crate::core::dom::DomElementType::Root(window.clone()));
-
-        //let mut sampl_elem = dom::create_dom_element(Some(&gfx_root),dom::DomElementType::Span);
+        let mut gfx_root: Box<DomElement> =
+            dom::create_dom_element(None, dom::DomElementType::Root(window.clone()));
 
         //let mut gfx_buffer = GfBuffer::new(window.clone());
         info!("Begin loop {:?}", event_loop);
@@ -45,7 +54,74 @@ impl MainWindow {
                     event: WindowEvent::Resized(_),
                     window_id: _,
                 } => {
-                    gfx_root.on_window_resize();
+                    gfx_root
+                        .as_mut()
+                        .on_window_event(&window_events::Event::Resized);
+                }
+                #[allow(deprecated)]
+                Event::WindowEvent {
+                    event:
+                        WindowEvent::CursorMoved {
+                            device_id,
+                            position,
+                            modifiers: _,
+                        },
+                    window_id: _,
+                } => {
+                    gfx_root
+                        .as_mut()
+                        .on_window_event(&window_events::Event::CursorMoved {
+                            device_id: window_events::DeviceId::new(format!("{:?}", device_id).as_str()), // format!("{}",device_id),
+                            position: Position {
+                                left: position.x,
+                                top: position.y,
+                            },
+                        });
+                }
+                Event::WindowEvent {
+                    event:
+                        WindowEvent::AxisMotion {
+                            device_id,
+                            axis,
+                            value,
+                        },
+                    window_id: _,
+                } => {
+                    gfx_root
+                        .as_mut()
+                        .on_window_event(&window_events::Event::AxisMotion {
+                            device_id: window_events::DeviceId::new(format!("{:?}", device_id).as_str()), // format!("{}",device_id),
+                            axis,
+                            value,
+                        });
+                }
+                Event::WindowEvent {
+                    event: WindowEvent::CursorEntered { device_id },
+                    window_id: _,
+                } => {
+                    gfx_root
+                        .as_mut()
+                        .on_window_event(&window_events::Event::CursorEntered {
+                            device_id: window_events::DeviceId::new(format!("{:?}", device_id).as_str()), // format!("{}",device_id),
+                        });
+                }
+                Event::WindowEvent {
+                    event: WindowEvent::CursorLeft { device_id },
+                    window_id: _,
+                } => {
+                    gfx_root
+                        .as_mut()
+                        .on_window_event(&window_events::Event::CursorLeft {
+                            device_id: window_events::DeviceId::new(format!("{:?}", device_id).as_str()), // format!("{}",device_id),
+                        });
+                }
+                Event::WindowEvent {
+                    event: WindowEvent::Focused(focus),
+                    window_id: _,
+                } => {
+                    gfx_root
+                        .as_mut()
+                        .on_window_event(&window_events::Event::Focused { focus });
                 }
                 Event::MainEventsCleared => {
                     // Application update code.
@@ -61,23 +137,25 @@ impl MainWindow {
                     last_frame_time = Instant::now();
                 }
                 Event::RedrawRequested(_) => {
-                    info!("Full RedrawRequested");
+                    debug!("Full RedrawRequested");
                     gfx_root.invalidate();
                 }
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
                     window_id,
                 } if window_id == window.id() => {
+                    gfx_root
+                        .as_mut()
+                        .on_window_event(&window_events::Event::CloseRequested);
+                    //gfx_root.on_window_event(&event, );
                     debug!("Exit from loop REQUESTED");
                     debug!("Window refcount: {}", Rc::strong_count(&window));
                     exit_handler();
                     *control_flow = ControlFlow::Exit;
                 }
-                Event::WindowEvent {
-                    event: _,
-                    window_id: _,
-                } => {
-                    //debug!("Event::WindowEvent {:?}", event);
+                Event::WindowEvent { event, window_id } if window_id == window.id() => {
+                    debug!("Unhandled WindowEvent {:?}", event);
+                    //gfx_root.on_window_event(&event);
                 }
                 _ => (),
             }
