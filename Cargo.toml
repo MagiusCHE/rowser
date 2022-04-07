@@ -18,3 +18,5 @@ pixels = { version = "0"}
 throw = { version = "0"}
 url = { version = "2"}
 winit = { version = "0" }
+lazy_static = { version = "1"}
+mtree = { git = "https://github.com/MagiusCHE/rust-mtree.git"}

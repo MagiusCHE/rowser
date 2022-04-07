@@ -19,8 +19,10 @@ use log::{debug, error, info, warn};
 //mod platform_window;
 mod core;
 use crate::core::platform_window::MainWindow;
+use mtree::*;
 
 fn main() {
+    let tree:Tree<i32> = Tree::new(); 
     env_logger::init();
     let args = Cli::parse();
     /*info!("This is an Info!");
@@ -31,9 +33,9 @@ fn main() {
     //info!("Url {:?}", url.as_str());
     let main_window = MainWindow {};
 
-    main_window.run(|| {
-        debug!("Application exit");
-    });
+    main_window.run();
+    
+    debug!("Application exit");
 }
 
 #[cfg(test)]

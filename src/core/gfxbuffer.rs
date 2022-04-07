@@ -13,16 +13,16 @@ use std::rc::Rc;
 use super::geometry::{Rect, Size};
 
 #[derive(Debug)]
-pub struct GfxBuffer {
+pub struct GfxBuffer<'a> {
     //surface_texture: &'a SurfaceTexture<'a, winit::window::Window>,
     pixels: Pixels,
-    window: Rc<winit::window::Window>,
+    window: &'a winit::window::Window,
     window_size: Size,
 }
 use super::color::Color;
 
-impl GfxBuffer {
-    pub fn new(window: Rc<winit::window::Window>) -> Self {
+impl<'a> GfxBuffer<'a> {
+    pub fn new(window: &'a winit::window::Window) -> Self {
         let window_size = window.inner_size();
 
         assert!(
@@ -33,7 +33,7 @@ impl GfxBuffer {
         );
 
         let surface_texture =
-            SurfaceTexture::new(window_size.width, window_size.height, window.as_ref());
+            SurfaceTexture::new(window_size.width, window_size.height, window);
         let pixels = Pixels::new(window_size.width, window_size.height, surface_texture).unwrap();
 
         Self {

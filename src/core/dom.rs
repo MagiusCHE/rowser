@@ -18,20 +18,21 @@ use std::cell::RefCell;
 use std::num::NonZeroU8;
 use std::rc::Rc;
 
-pub enum DomElementType {
-    Root(Rc<winit::window::Window>),
+#[derive(Debug)]
+pub enum DomElementType<'a> {
+    Root(&'a winit::window::Window),
     //Literal,
     Span,
 }
 
 pub struct DomElement<'a> {
-    node_type: DomElementType,
+    node_type: DomElementType<'a>,
     dimension: Rect,
     parent: Option<&'a DomElement<'a>>,
     children: RefCell<Vec<DomElement<'a>>>,
-    window: Option<Rc<winit::window::Window>>,
+    window: Option<&'a winit::window::Window>,
     invalidated_rects: Option<RefCell<Vec<Rect>>>,
-    gfx_buffer: Option<RefCell<GfxBuffer>>,
+    gfx_buffer: Option<RefCell<GfxBuffer<'a>>>,
     initialized: bool,
 }
 
@@ -51,11 +52,11 @@ impl<'a> BaseDomElement for DomElement<'a> {
     }
 }
 
-pub fn create_dom_element<'a,'b>(
+pub fn create_dom_element<'a>(
     parent: Option<&'a DomElement<'a>>,
-    _type: DomElementType,
-) -> Box<DomElement<'_>> {
-    let mut elem: DomElement<'_> = DomElement {
+    _type: DomElementType<'a>,
+) -> DomElement<'a> {
+    let mut elem = DomElement {
         initialized: false,
         node_type: _type,
         dimension: Rect::new(0.0, 0.0, 0.0, 0.0),
@@ -67,21 +68,21 @@ pub fn create_dom_element<'a,'b>(
         gfx_buffer: None,
     };
     match elem.node_type {
-        DomElementType::Root(ref win) => {
-            elem.window = Some(win.clone());
+        DomElementType::Root(win) => {
+            elem.window = Some(win);
             let wsize = win.inner_size();
             elem.dimension = Rect::new(0.0, 0.0, wsize.width as f64, wsize.height as f64);
             elem.invalidated_rects = Some(RefCell::new(Vec::new()));
-            elem.gfx_buffer = Some(RefCell::new(GfxBuffer::new(win.clone())));
+            elem.gfx_buffer = Some(RefCell::new(GfxBuffer::new(win)));
             RootDomElement::init(&mut elem);
         }
 
-        DomElementType::Span => {
+        _ => {
             BaseDomElement::init(&mut elem);
         }
     }
 
-    Box::new(elem)
+    elem
 }
 
 impl<'a> DomElement<'a> {
@@ -120,14 +121,14 @@ impl<'a> PaintableDomElement for DomElement<'a> {
     }
 }
 
-pub trait RootDomElement: PaintableDomElement {
+pub trait RootDomElement<'a>: PaintableDomElement {
     fn paint(&self, rect: &Rect, gfx: &mut GfxBuffer);
     fn init(&mut self) {}
     fn on_frame(&self, _: f64);
     fn on_window_resize(&mut self);
 }
 
-impl<'a> RootDomElement for DomElement<'a> {
+impl<'a> RootDomElement<'a> for DomElement<'a> {
     fn paint(&self, rect: &Rect, gfx: &mut GfxBuffer) {
         debug!("Begin paint of {:?}", rect);
         if !self.intersect_rect(rect) {
@@ -171,14 +172,5 @@ impl<'a> RootDomElement for DomElement<'a> {
     }
     fn init(&mut self) {
         debug!("Initialized ROOT");
-
-        let parent: &'a DomElement = self;
-        
-        let span1 = create_dom_element(
-            Some(parent),
-             DomElementType::Span);
-
-
-        BaseDomElement::init(self);
     }
 }

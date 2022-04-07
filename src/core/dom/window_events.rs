@@ -63,6 +63,10 @@ impl<'a> EventHandler for DomElement<'a> {
         match event {
             Event::Resized => self.on_window_resize(),
             Event::CloseRequested => (),
+            #[allow(unused)]
+            Event::AxisMotion { device_id, axis, value } => (),
+            #[allow(unused)]
+            Event::CursorMoved { device_id, position } => (),
             _ => {
                 fixme!(format!("{:?}",event))
             }            
