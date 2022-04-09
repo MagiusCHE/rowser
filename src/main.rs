@@ -21,7 +21,7 @@ mod core;
 use crate::core::platform_window::MainWindow;
 use mtree::*;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tree:Tree<i32> = Tree::new(); 
     env_logger::init();
     let args = Cli::parse();
@@ -33,9 +33,11 @@ fn main() {
     //info!("Url {:?}", url.as_str());
     let main_window = MainWindow {};
 
-    main_window.run();
+    main_window.run()?;
     
     debug!("Application exit");
+
+    Ok(())
 }
 
 #[cfg(test)]

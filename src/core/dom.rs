@@ -42,13 +42,13 @@ pub trait PaintableDomElement {
 }
 
 pub trait BaseDomElement {
-    fn init(&mut self);
+    fn init(&mut self) -> &mut Self;
 }
 
 impl<'a> BaseDomElement for DomElement<'a> {
-    fn init(&mut self) {
+    fn init(&mut self) -> &mut Self {
         debug!("Initialized DomElement");
-        self.initialized = true
+        self
     }
 }
 
@@ -121,7 +121,7 @@ impl<'a> PaintableDomElement for DomElement<'a> {
     }
 }
 
-pub trait RootDomElement<'a>: PaintableDomElement {
+pub trait RootDomElement<'a>: PaintableDomElement+BaseDomElement {
     fn paint(&self, rect: &Rect, gfx: &mut GfxBuffer);
     fn init(&mut self) {}
     fn on_frame(&self, _: f64);
@@ -132,7 +132,7 @@ impl<'a> RootDomElement<'a> for DomElement<'a> {
     fn paint(&self, rect: &Rect, gfx: &mut GfxBuffer) {
         debug!("Begin paint of {:?}", rect);
         if !self.intersect_rect(rect) {
-            () //return!
+            return
         }
         gfx.clear(rect, Colors::BLACK);
         paint_common(self, rect, gfx);
@@ -171,6 +171,7 @@ impl<'a> RootDomElement<'a> for DomElement<'a> {
         self.gfx_buffer.as_ref().unwrap().borrow_mut().resize();
     }
     fn init(&mut self) {
-        debug!("Initialized ROOT");
+        BaseDomElement::init(self);
+        debug!("Initialized ROOT");        
     }
 }
