@@ -17,12 +17,9 @@ use winit::{
     window::WindowBuilder,
 };
 
-use std::rc::Rc;
-
-use crate::core::dom2;
+use crate::core::dom::window_events::EventHandler;
 
 use super::dom::*;
-use super::dom2::*;
 
 use super::geometry::*;
 
@@ -43,7 +40,7 @@ impl MainWindow {
         //let mut gfx_root = dom::create_dom_element(None, dom::DomElementType::Root(&window));
 
         let win_id = window.id();
-        let mut gfx_root = DomRoot::new(window)?;
+        let mut gfx_root = DomRoot::new(&window);
 
         /*let mut tree: Tree<DomElement> = Tree::new();
         tree.add_node(mtree::TreeNodeType::Root, || {
@@ -146,7 +143,7 @@ impl MainWindow {
                 }
                 Event::RedrawRequested(_) => {
                     debug!("Full RedrawRequested");
-                    gfx_root.invalidate();
+                    gfx_root.redraw_requested();
                 }
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,

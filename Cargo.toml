@@ -19,5 +19,6 @@ throw = { version = "0"}
 url = { version = "2"}
 winit = { version = "0" }
 lazy_static = { version = "1"}
+derivative = { version = "2"}
 #mtree = { git = "https://github.com/MagiusCHE/rust-mtree.git"}
 mtree = { path = "../rust-mtree"  }

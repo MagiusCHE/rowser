@@ -3,37 +3,37 @@
 
 use log::{debug, error, info, warn};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq,Copy)]
 pub struct Position {
     pub left: f64,
     pub top: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq,Copy)]
 pub struct Limits {
     pub right: f64,
     pub bottom: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq,Copy)]
 pub struct Bounds {
     pub begin: Position,
     pub end: Limits,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq,Copy)]
 pub struct Size {
     pub width: f64,
     pub height: f64,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq,Copy)]
 pub struct Rect {
     pub position: Position,
     pub size: Size,
 }
 
-use std::fmt;
+use std::{fmt, ops};
 
 impl fmt::Debug for Rect {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -62,9 +62,25 @@ impl Rect {
             end: self.limits(),
         }
     }
+
+    pub fn rebound(&self, tocheck: &Rect) -> Self {
+        if self == tocheck {
+            return self.clone();
+        }
+        Self {
+            position: Position {
+                left: self.left().max(tocheck.left()),
+                top: self.top().max(tocheck.top()),
+            },
+            size: Size {
+                width: self.width().min(tocheck.width()),
+                height: self.height().min(tocheck.height()),
+            },
+        }
+    }
     pub fn limits(&self) -> Limits {
         Limits {
-            right: self.position.left + (self.size.width ),
+            right: self.position.left + (self.size.width),
             bottom: self.position.top + (self.size.height),
         }
     }
@@ -81,16 +97,16 @@ impl Rect {
         self.position.top
     }
     pub fn right(&self) -> f64 {
-        self.position.top + self.size.height as f64
-    }
-    pub fn bottom(&self) -> f64 {
         self.position.left + self.size.width as f64
     }
+    pub fn bottom(&self) -> f64 {
+        self.position.top + self.size.height as f64
+    }
     pub fn width(&self) -> f64 {
-        self.size.height
+        self.size.width
     }
     pub fn height(&self) -> f64 {
-        self.size.width
+        self.size.height
     }
 
     pub fn intersect_rect(&self, rect: &Rect) -> bool {
@@ -105,6 +121,39 @@ impl Rect {
 
     pub fn contains_point(&self, pt: &Position) -> bool {
         self.contains_xy(pt.left, pt.top)
+    }
+
+    pub fn add_pos(&self, pos: &Position) -> Rect{
+        Rect {
+            position: Position {
+                left: self.left() + pos.left,
+                top: self.top() + pos.top,
+            },
+            size: self.size.clone(),
+        }
+    }
+    pub fn sub_pos(&self, pos: &Position) -> Rect{
+        Rect {
+            position: Position {
+                left: self.left() - pos.left,
+                top: self.top() - pos.top,
+            },
+            size: self.size.clone(),
+        }
+    }
+}
+
+impl ops::Add<Position> for Rect {
+    type Output = Self;
+
+    fn add(self, src: Position) -> Self {
+        Rect {
+            position: Position {
+                left: self.left() + src.left,
+                top: self.top() + src.top,
+            },
+            size: self.size,
+        }
     }
 }
 

@@ -5,6 +5,8 @@ use log::{debug, error, info, warn};
 
 use pixels::{Pixels, SurfaceTexture};
 
+use crate::fixme;
+
 use super::simple_error::SimpleError;
 
 use std::rc::Rc;
@@ -74,7 +76,9 @@ impl<'a> GfxBuffer<'a> {
         Ok(ret.unwrap())
     }
     pub fn clear(&mut self, rect: &Rect, color: Color) {
+        fixme!("Pixels get_frame should be called one per frame and draw all elements");
         let frame = self.pixels.get_frame();
+        debug!("Clear rect {:?} ons wsize: {:?}", rect,&self.window_size);
         let window_size = &self.window_size;
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
             let x = i % window_size.width as usize;

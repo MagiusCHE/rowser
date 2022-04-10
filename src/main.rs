@@ -19,10 +19,8 @@ use log::{debug, error, info, warn};
 //mod platform_window;
 mod core;
 use crate::core::platform_window::MainWindow;
-use mtree::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let tree:Tree<i32> = Tree::new(); 
     env_logger::init();
     let args = Cli::parse();
     /*info!("This is an Info!");
@@ -34,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let main_window = MainWindow {};
 
     main_window.run()?;
-    
+
     debug!("Application exit");
 
     Ok(())
@@ -44,12 +42,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 mod tests {
 
     #[allow(dead_code)]
-    //#[test]    
+    //#[test]
     fn helper_1() {
         let hexstrcolor = "0FFF";
-        let u = u8::from_str_radix(&hexstrcolor[2..4], 16);        
+        let u = u8::from_str_radix(&hexstrcolor[2..4], 16);
         assert!(u.is_ok());
         let val = u.unwrap();
-        assert!(val==255,"Expected {}, found {}", 255,val );
+        assert!(val == 255, "Expected {}, found {}", 255, val);
     }
 }

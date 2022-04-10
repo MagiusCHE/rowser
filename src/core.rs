@@ -1,6 +1,5 @@
 pub(crate) mod color;
 pub(crate) mod dom;
-pub(crate) mod dom2;
 pub(crate) mod geometry;
 pub(crate) mod gfxbuffer;
 pub mod platform_window;

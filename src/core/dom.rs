@@ -3,175 +3,205 @@
 
 pub(crate) mod window_events;
 
-use crate::fixme;
-
-use super::geometry::*;
 use super::gfxbuffer::GfxBuffer;
-
-use log::{debug, error, info, warn};
+use super::{geometry::*, gfxbuffer};
+use core::fmt;
+use std::cell::RefCell;
+use std::cmp::Ordering;
+use std::{error::Error, fmt::Display};
 
 use super::color::{Color, Colors};
 
-use core::fmt;
-use std::borrow::Borrow;
-use std::cell::RefCell;
-use std::num::NonZeroU8;
-use std::rc::Rc;
+use log::{debug, error, info, warn};
 
-#[derive(Debug)]
-pub enum DomElementType<'a> {
-    Root(&'a winit::window::Window),
-    //Literal,
+use mtree::*;
+
+use crate::fixme;
+
+use super::dom::window_events::*;
+
+#[derive(Debug,Copy,Clone)]
+enum DomElementType {
+    Root,
     Span,
 }
 
-pub struct DomElement<'a> {
-    node_type: DomElementType<'a>,
-    dimension: Rect,
-    parent: Option<&'a DomElement<'a>>,
-    children: RefCell<Vec<DomElement<'a>>>,
-    window: Option<&'a winit::window::Window>,
-    invalidated_rects: Option<RefCell<Vec<Rect>>>,
-    gfx_buffer: Option<RefCell<GfxBuffer<'a>>>,
+#[derive(Debug)]
+struct DomElementChild {}
+
+#[derive(Debug)]
+struct DomElement {
+    bounds: Rect,
+    node_type: DomElementType,
     initialized: bool,
+    paint_order: u32,
 }
 
-pub trait PaintableDomElement {
-    fn paint(&self, rect: &Rect, gfx: &mut GfxBuffer);
-    fn invalidate(&self);
+#[derive(Debug)]
+pub struct DomRoot<'a> {
+    tree: Tree<DomElement>,
+    window: Option<&'a winit::window::Window>,
+    gfx_buffer: GfxBuffer<'a>,
+    invalidated_rects: Vec<Rect>,
 }
 
-pub trait BaseDomElement {
-    fn init(&mut self) -> &mut Self;
-}
-
-impl<'a> BaseDomElement for DomElement<'a> {
-    fn init(&mut self) -> &mut Self {
-        debug!("Initialized DomElement");
-        self
-    }
-}
-
-pub fn create_dom_element<'a>(
-    parent: Option<&'a DomElement<'a>>,
-    _type: DomElementType<'a>,
-) -> DomElement<'a> {
-    let mut elem = DomElement {
-        initialized: false,
-        node_type: _type,
-        dimension: Rect::new(0.0, 0.0, 0.0, 0.0),
-        parent: parent,
-        children: RefCell::new(Vec::new()),
-        //Theese are Root'a fields
-        window: None,
-        invalidated_rects: None,
-        gfx_buffer: None,
-    };
-    match elem.node_type {
-        DomElementType::Root(win) => {
-            elem.window = Some(win);
-            let wsize = win.inner_size();
-            elem.dimension = Rect::new(0.0, 0.0, wsize.width as f64, wsize.height as f64);
-            elem.invalidated_rects = Some(RefCell::new(Vec::new()));
-            elem.gfx_buffer = Some(RefCell::new(GfxBuffer::new(win)));
-            RootDomElement::init(&mut elem);
+impl<'a> DomRoot<'a> {
+    pub fn new(window: &'a winit::window::Window) -> Self {
+        let wsize = window.inner_size();
+        let mut tree = Tree::new();
+        if let Err(err) = tree.add_node(TreeNodeType::Root, || DomElement {
+            bounds: Rect::new(0.0, 0.0, wsize.width as f64, wsize.height as f64),
+            node_type: DomElementType::Root,
+            initialized: false,
+            paint_order: 0,
+        }) {
+            panic!("Error while get root of tree {}", err);
         }
 
-        _ => {
-            BaseDomElement::init(&mut elem);
+        let mut root = DomRoot {
+            tree,
+            window: Some(window),
+            gfx_buffer: GfxBuffer::new(window.clone()),
+            invalidated_rects: Vec::new(),
+        };
+
+        root.tree.get_node_mut(0).unwrap().init();
+
+        root.load_initial_state();
+
+        root
+    }
+
+    fn on_window_resize(&mut self) {
+        let wsize = self.window.as_ref().unwrap().inner_size();
+        debug!("Resize window to {}x{}", wsize.width, wsize.height);
+        if let Err(err) = self.tree.get_node(0, |node, _| {
+            node.bounds = Rect::new(0.0, 0.0, wsize.width as f64, wsize.height as f64);
+            debug!("Resize root to {:?}", node.bounds);
+            Ok(())
+        }) {
+            panic!("Error while get root of tree {}", err);
+        }
+        self.gfx_buffer.resize();
+    }
+
+    fn invalidate_rect(&mut self, rect: &Rect) {
+        // limit rect to actual size.
+        let new_rect = self
+            .tree
+            .get_node(0, |node, _| {
+                Ok(Rect::new(
+                    rect.left().max(node.bounds.left()).min(node.bounds.width()),
+                    rect.top().max(node.bounds.top()).min(node.bounds.height()),
+                    rect.width().min(node.bounds.width()),
+                    rect.height().min(node.bounds.height()),
+                ))
+            })
+            .unwrap();
+
+        if !self.invalidated_rects.contains(&new_rect) {
+            self.invalidated_rects.push(new_rect);
         }
     }
+    pub fn redraw_requested(&mut self) {
+        let rect = self
+            .tree
+            .get_node(0, |node, _| Ok(node.bounds.clone()))
+            .unwrap();
+        self.invalidated_rects.clear();
+        self.invalidate_rect(&rect);
+    }
 
-    elem
-}
-
-impl<'a> DomElement<'a> {
-    pub fn add_child(&self, child: DomElement<'a>) {
-        self.children.borrow_mut().push(child);
-    }
-    pub fn intersect_rect(&self, rect: &Rect) -> bool {
-        self.get_dimension().intersect_rect(&rect)
-    }
-    pub fn get_dimension(&self) -> &Rect {
-        &self.dimension
-    }
-    pub fn get_bounds(&self) -> Bounds {
-        self.get_dimension().get_bounds()
-    }
-}
-
-fn paint_common(_: &dyn PaintableDomElement, _: &Rect, gfx: &mut GfxBuffer) {
-    let result = gfx.render();
-    if result.is_err() {
-        error!("Error while rendering on framebuffer: {:?}", result.err());
-    }
-}
-
-impl<'a> PaintableDomElement for DomElement<'a> {
-    fn paint(&self, rect: &Rect, gfx: &mut GfxBuffer) {
-        paint_common(self, rect, gfx);
-    }
-    fn invalidate(&self) {
-        debug!("invalidate {:?}", self.dimension);
-        self.invalidated_rects
-            .as_ref()
-            .unwrap()
-            .borrow_mut()
-            .push(self.dimension.clone());
-    }
-}
-
-pub trait RootDomElement<'a>: PaintableDomElement+BaseDomElement {
-    fn paint(&self, rect: &Rect, gfx: &mut GfxBuffer);
-    fn init(&mut self) {}
-    fn on_frame(&self, _: f64);
-    fn on_window_resize(&mut self);
-}
-
-impl<'a> RootDomElement<'a> for DomElement<'a> {
-    fn paint(&self, rect: &Rect, gfx: &mut GfxBuffer) {
+    fn paint_rect(&mut self, rect: &Rect) {
         debug!("Begin paint of {:?}", rect);
-        if !self.intersect_rect(rect) {
-            return
-        }
-        gfx.clear(rect, Colors::BLACK);
-        paint_common(self, rect, gfx);
-        self.children.borrow_mut().iter().for_each(|child| {
-            if child.intersect_rect(rect) {
-                paint_common(child, rect, gfx);
-            }
-        });
-    }
-    fn on_frame(&self, _: f64) {
-        //main Frame is here
-        //check is there are invalidated rects
-        let mut someinvalidated = 0;
-        let mut rects = self.invalidated_rects.as_ref().unwrap().borrow_mut();
+        let position = self.tree.get_node_mut(0).unwrap().bounds.position();
 
-        rects.retain(|rect| {
-            RootDomElement::paint(
-                self,
-                rect,
-                &mut self.gfx_buffer.as_ref().unwrap().borrow_mut(),
-            );
+        //fixme!("Should check all nodes and arrange them using potizioning and z-index");
+        if let Err(err) = self.tree.trasverse_sorted_children(0, |a:&DomElement,b:&DomElement| { 
+            a.paint_order.cmp(&b.paint_order)
+         } , &mut |node, _, _| {
+             debug!("Paint {:?}", node.bounds);
+            let rect = node.bounds.rebound(&rect.add_pos(&position));
+            debug!("Paint rect after rebound {:?}", rect);
+
+            node.paint(&mut self.gfx_buffer, &rect);
+            //self.paint_rect(index_in_tree, &rect);
+        }) {
+            panic!("Error while tree.foreach_children {}", err);
+        }
+
+        let result = self.gfx_buffer.render();
+        if result.is_err() {
+            error!("Error while rendering on framebuffer: {:?}", result.err());
+        }
+    }
+    fn paint(&mut self) {
+        let mut someinvalidated = 0;
+
+        let rects = std::mem::replace(&mut self.invalidated_rects, vec![]);
+
+        for rect in rects {
+            // Recoursivly paint rect on all children
+            self.paint_rect(&rect);
             someinvalidated += 1;
-            false
-        });
+        }
+
         if someinvalidated > 0 {
             debug!(
                 "Painted {} rects. Remains: {}",
                 someinvalidated,
-                rects.len()
+                self.invalidated_rects.len()
             );
         }
     }
-    fn on_window_resize(&mut self) {
-        let wsize = self.window.as_ref().unwrap().inner_size();
-        self.dimension = Rect::new(0.0, 0.0, wsize.width as f64, wsize.height as f64);
-        self.gfx_buffer.as_ref().unwrap().borrow_mut().resize();
+
+    pub fn on_frame(&mut self, _: f64) {
+        //main Frame is here
+
+        if self.invalidated_rects.len() > 0 {
+            self.paint();
+        }
+    }
+
+    fn load_initial_state(&mut self) {
+        let index_in_tree = self.create_dom_element_at(DomElementType::Span, 0, Rect::new(100.0, 100.0, 100.0, 100.0));
+
+        
+    }
+
+    fn create_dom_element_at(
+        &mut self,
+        node_type: DomElementType,
+        parent_index_in_tree: usize,
+        bounds: Rect,
+    ) -> usize {
+        let index_in_tree = self.tree.add_node(TreeNodeType::Child(parent_index_in_tree), || {
+            DomElement {
+                bounds,
+                node_type,
+                initialized: false,
+                paint_order: 0,
+            }
+        }).unwrap();        
+        self.tree.get_node_mut(index_in_tree).unwrap().paint_order = self.tree.len() as u32;
+        index_in_tree
+    }
+}
+
+impl DomElement {
+    fn paint(&self, gfx: &mut GfxBuffer, rect: &Rect) {
+        match self.node_type {
+            DomElementType::Root => {
+                gfx.clear(rect, Colors::BLACK);
+            }
+            DomElementType::Span => {
+                fixme!("Span Paint todo");
+                gfx.clear(rect, Colors::WHITE);
+            }
+        }
     }
     fn init(&mut self) {
-        BaseDomElement::init(self);
-        debug!("Initialized ROOT");        
+        debug!("Init {:?}", self);
+        self.initialized = true;
     }
 }
