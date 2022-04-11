@@ -87,18 +87,21 @@ impl<'a> DomRoot<'a> {
 
     fn invalidate_rect(&mut self, rect: &Rect) {
         // limit rect to actual size.
+        debug!("Invalidate rect {:?}", rect);
         let new_rect = self
             .tree
             .get_node(0, |node, _| {
                 Ok(Rect::new(
-                    rect.left().max(node.bounds.left()).min(node.bounds.width()),
-                    rect.top().max(node.bounds.top()).min(node.bounds.height()),
-                    rect.width().min(node.bounds.width()),
-                    rect.height().min(node.bounds.height()),
+                    rect.left().max(node.bounds.left()).min(node.bounds.right()),
+                    rect.top().max(node.bounds.top()).min(node.bounds.bottom()),
+                    rect.width().max(0.0).min(node.bounds.right() - rect.left()),
+                    rect.height().max(0.0).min(node.bounds.bottom() - rect.top()),
+                    /*rect.width().min(node.bounds.width()),
+                    rect.height().min(node.bounds.height()),*/
                 ))
             })
             .unwrap();
-
+        debug!("Invalidate rebounded rect {:?}", new_rect);
         if !self.invalidated_rects.contains(&new_rect) {
             self.invalidated_rects.push(new_rect);
         }
@@ -120,11 +123,15 @@ impl<'a> DomRoot<'a> {
         if let Err(err) = self.tree.trasverse_sorted_children(0, |a:&DomElement,b:&DomElement| { 
             a.paint_order.cmp(&b.paint_order)
          } , &mut |node, _, _| {
-             debug!("Paint {:?}", node.bounds);
+             debug!("Paint {:?} on {:?}",rect, node.bounds);
             let rect = node.bounds.rebound(&rect.add_pos(&position));
-            debug!("Paint rect after rebound {:?}", rect);
-
-            node.paint(&mut self.gfx_buffer, &rect);
+            
+            if !rect.is_empty() {
+                debug!("Paint rect after rebound {:?}", rect);
+                node.paint(&mut self.gfx_buffer, &rect);    
+            } else {
+                debug!("Skip rect after rebound {:?}", rect);
+            }
             //self.paint_rect(index_in_tree, &rect);
         }) {
             panic!("Error while tree.foreach_children {}", err);
@@ -164,7 +171,7 @@ impl<'a> DomRoot<'a> {
     }
 
     fn load_initial_state(&mut self) {
-        let index_in_tree = self.create_dom_element_at(DomElementType::Span, 0, Rect::new(100.0, 100.0, 100.0, 100.0));
+        self.create_dom_element_at(DomElementType::Span, 0, Rect::new(30.0, 50.0, 47.0, 22.0));
 
         
     }

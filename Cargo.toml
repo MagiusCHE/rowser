@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Magius(CHE) <magiusche@magius.it>"]
 homepage = "https://magius.it/rowser"
 repository = "https://github.com/magiusche/rowser"
-license = "MIT OR Apache-2.0"
+license = "MIT"
 keywords = ["browser", "os"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

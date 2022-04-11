@@ -3,31 +3,31 @@
 
 use log::{debug, error, info, warn};
 
-#[derive(Debug, Clone, PartialEq,Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct Position {
     pub left: f64,
     pub top: f64,
 }
 
-#[derive(Debug, Clone, PartialEq,Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct Limits {
     pub right: f64,
     pub bottom: f64,
 }
 
-#[derive(Debug, Clone, PartialEq,Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct Bounds {
     pub begin: Position,
     pub end: Limits,
 }
 
-#[derive(Debug, Clone, PartialEq,Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct Size {
     pub width: f64,
     pub height: f64,
 }
 
-#[derive(Clone, PartialEq,Copy)]
+#[derive(Clone, PartialEq, Copy)]
 pub struct Rect {
     pub position: Position,
     pub size: Size,
@@ -73,8 +73,8 @@ impl Rect {
                 top: self.top().max(tocheck.top()),
             },
             size: Size {
-                width: self.width().min(tocheck.width()),
-                height: self.height().min(tocheck.height()),
+                width: self.width().min(tocheck.right() - self.left()).max(0.0),
+                height: self.height().min(tocheck.height() - self.top()).max(0.0),
             },
         }
     }
@@ -116,14 +116,14 @@ impl Rect {
             || rect.bottom() < self.top())
     }
     pub fn contains_xy(&self, x: f64, y: f64) -> bool {
-        self.left() < x && x < self.right() && self.top() < y && y < self.bottom()
+        x >= self.left() && x < self.right() && y >= self.top() && y < self.bottom()
     }
 
     pub fn contains_point(&self, pt: &Position) -> bool {
         self.contains_xy(pt.left, pt.top)
     }
 
-    pub fn add_pos(&self, pos: &Position) -> Rect{
+    pub fn add_pos(&self, pos: &Position) -> Rect {
         Rect {
             position: Position {
                 left: self.left() + pos.left,
@@ -132,7 +132,7 @@ impl Rect {
             size: self.size.clone(),
         }
     }
-    pub fn sub_pos(&self, pos: &Position) -> Rect{
+    pub fn sub_pos(&self, pos: &Position) -> Rect {
         Rect {
             position: Position {
                 left: self.left() - pos.left,
@@ -140,6 +140,10 @@ impl Rect {
             },
             size: self.size.clone(),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.size.width == 0.0 || self.size.height == 0.0
     }
 }
 

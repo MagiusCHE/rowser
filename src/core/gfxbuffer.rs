@@ -20,6 +20,7 @@ pub struct GfxBuffer<'a> {
     pixels: Pixels,
     window: &'a winit::window::Window,
     window_size: Size,
+    //buffer: RgbImage,
 }
 use super::color::Color;
 
@@ -41,6 +42,10 @@ impl<'a> GfxBuffer<'a> {
         Self {
             window: window,
             //surface_texture: &surface_texture,
+            /*buffer: ImageBuffer::new(
+                window_size.width,
+                window_size.height,
+            ),*/
             pixels: pixels,
             window_size: Size {
                 width: window_size.width as f64,
@@ -67,8 +72,12 @@ impl<'a> GfxBuffer<'a> {
             .resize_surface(window_size.width, window_size.height);
         self.pixels
             .resize_buffer(window_size.width, window_size.height);
+        
     }
     pub fn render(&self) -> Result<(), SimpleError> {
+
+
+
         let ret = self.pixels.render();
         if ret.is_err() {
             return Err(SimpleError::new(format!("{}", ret.unwrap_err()).as_str()));
