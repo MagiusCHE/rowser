@@ -10,8 +10,9 @@
   "scripts": {
     "start": "cross-env RUST_BACKTRACE=1 RUST_LOG=rowser cargo run -- $@",
     "test": "cross-env RUST_BACKTRACE=1 RUST_LOG=rowser cargo test -- $@",
+    "rebuild": "cargo clean && cargo build",
     "build": "cargo build",
-    "build:win": "rustup target add x86_64-pc-windows-gnu && rustup toolchain install stable-x86_64-pc-windows-gnu --force-non-host && cargo build --target x86_64-pc-windows-gnu",
+    "build:win": "rustup target add x86_64-pc-windows-gnu && rustup toolchain install stable-x86_64-pc-windows-gnu  && cargo build --target x86_64-pc-windows-gnu",
     "start:wine": "wine target/x86_64-pc-windows-gnu/debug/rowser.exe"
   },
   "dependencies": {
