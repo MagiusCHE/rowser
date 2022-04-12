@@ -20,7 +20,7 @@ use crate::fixme;
 
 use super::dom::window_events::*;
 
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug, Copy, Clone)]
 enum DomElementType {
     Root,
     Span,
@@ -43,6 +43,8 @@ pub struct DomRoot<'a> {
     window: Option<&'a winit::window::Window>,
     gfx_buffer: GfxBuffer<'a>,
     invalidated_rects: Vec<Rect>,
+    last_window_size: Size,
+    redraw_requested_invoked: bool,
 }
 
 impl<'a> DomRoot<'a> {
@@ -60,9 +62,14 @@ impl<'a> DomRoot<'a> {
 
         let mut root = DomRoot {
             tree,
+            last_window_size: Size {
+                width: wsize.width as f64,
+                height: wsize.height as f64,
+            },
             window: Some(window),
             gfx_buffer: GfxBuffer::new(window.clone()),
             invalidated_rects: Vec::new(),
+            redraw_requested_invoked:false
         };
 
         root.tree.get_node_mut(0).unwrap().init();
@@ -75,6 +82,11 @@ impl<'a> DomRoot<'a> {
     fn on_window_resize(&mut self) {
         let wsize = self.window.as_ref().unwrap().inner_size();
         debug!("Resize window to {}x{}", wsize.width, wsize.height);
+        if self.last_window_size == (wsize.width, wsize.height) {
+            debug!("Window size is the same, no need to resize");
+            return; 
+        }
+        
         if let Err(err) = self.tree.get_node(0, |node, _| {
             node.bounds = Rect::new(0.0, 0.0, wsize.width as f64, wsize.height as f64);
             debug!("Resize root to {:?}", node.bounds);
@@ -83,6 +95,13 @@ impl<'a> DomRoot<'a> {
             panic!("Error while get root of tree {}", err);
         }
         self.gfx_buffer.resize();
+
+        self.last_window_size = Size {
+            width: wsize.width as f64,
+            height: wsize.height as f64,
+        };
+        //Smooth paint on resize
+        self.invalidate_rect(&Rect::new(0.0, 0.0, wsize.width as f64, wsize.height as f64));
     }
 
     fn invalidate_rect(&mut self, rect: &Rect) {
@@ -92,26 +111,30 @@ impl<'a> DomRoot<'a> {
             .tree
             .get_node(0, |node, _| {
                 Ok(Rect::new(
-                    rect.left().max(node.bounds.left()).min(node.bounds.right()),
-                    rect.top().max(node.bounds.top()).min(node.bounds.bottom()),
+                    rect.left().max(0.0).min(node.bounds.right()),
+                    rect.top().max(0.0).min(node.bounds.bottom()),
                     rect.width().max(0.0).min(node.bounds.right() - rect.left()),
-                    rect.height().max(0.0).min(node.bounds.bottom() - rect.top()),
-                    /*rect.width().min(node.bounds.width()),
-                    rect.height().min(node.bounds.height()),*/
+                    rect.height()
+                        .max(0.0)
+                        .min(node.bounds.bottom() - rect.top()),
                 ))
             })
             .unwrap();
         debug!("Invalidate rebounded rect {:?}", new_rect);
+        if new_rect.size == self.last_window_size {
+            self.invalidated_rects.clear();
+        }
         if !self.invalidated_rects.contains(&new_rect) {
             self.invalidated_rects.push(new_rect);
+            self.invalidated_rects = Rect::update_region(&mut self.invalidated_rects);
         }
     }
     pub fn redraw_requested(&mut self) {
+        //A full windows repain is invoked... can we trust it?
         let rect = self
             .tree
             .get_node(0, |node, _| Ok(node.bounds.clone()))
-            .unwrap();
-        self.invalidated_rects.clear();
+            .unwrap();        
         self.invalidate_rect(&rect);
     }
 
@@ -120,20 +143,22 @@ impl<'a> DomRoot<'a> {
         let position = self.tree.get_node_mut(0).unwrap().bounds.position();
 
         //fixme!("Should check all nodes and arrange them using potizioning and z-index");
-        if let Err(err) = self.tree.trasverse_sorted_children(0, |a:&DomElement,b:&DomElement| { 
-            a.paint_order.cmp(&b.paint_order)
-         } , &mut |node, _, _| {
-             debug!("Paint {:?} on {:?}",rect, node.bounds);
-            let rect = node.bounds.rebound(&rect.add_pos(&position));
-            
-            if !rect.is_empty() {
-                debug!("Paint rect after rebound {:?}", rect);
-                node.paint(&mut self.gfx_buffer, &rect);    
-            } else {
-                debug!("Skip rect after rebound {:?}", rect);
-            }
-            //self.paint_rect(index_in_tree, &rect);
-        }) {
+        if let Err(err) = self.tree.trasverse_sorted_children(
+            0,
+            |a: &DomElement, b: &DomElement| a.paint_order.cmp(&b.paint_order),
+            &mut |node, _, _| {
+                debug!("Paint {:?} on {:?}", rect, node.bounds);
+                let rect = node.bounds.rebound(&rect.add_pos(&position));
+
+                if !rect.is_empty() {
+                    debug!("Paint rect after rebound {:?}", rect);
+                    node.paint(&mut self.gfx_buffer, &rect);
+                } else {
+                    debug!("Skip rect after rebound {:?}", rect);
+                }
+                //self.paint_rect(index_in_tree, &rect);
+            },
+        ) {
             panic!("Error while tree.foreach_children {}", err);
         }
 
@@ -172,8 +197,6 @@ impl<'a> DomRoot<'a> {
 
     fn load_initial_state(&mut self) {
         self.create_dom_element_at(DomElementType::Span, 0, Rect::new(30.0, 50.0, 47.0, 22.0));
-
-        
     }
 
     fn create_dom_element_at(
@@ -182,14 +205,15 @@ impl<'a> DomRoot<'a> {
         parent_index_in_tree: usize,
         bounds: Rect,
     ) -> usize {
-        let index_in_tree = self.tree.add_node(TreeNodeType::Child(parent_index_in_tree), || {
-            DomElement {
+        let index_in_tree = self
+            .tree
+            .add_node(TreeNodeType::Child(parent_index_in_tree), || DomElement {
                 bounds,
                 node_type,
                 initialized: false,
                 paint_order: 0,
-            }
-        }).unwrap();        
+            })
+            .unwrap();
         self.tree.get_node_mut(index_in_tree).unwrap().paint_order = self.tree.len() as u32;
         index_in_tree
     }

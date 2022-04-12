@@ -15,6 +15,7 @@ clap = { version = "3", features = ["derive"] }
 env_logger = { version = "0"}
 log = { version = "0"}
 pixels = { version = "0"}
+"assert2"=  "0"
 throw = { version = "0"}
 url = { version = "2"}
 winit = { version = "0" }

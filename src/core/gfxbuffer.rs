@@ -92,7 +92,7 @@ impl<'a> GfxBuffer<'a> {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
             let x = i % window_size.width as usize;
             let y = i / window_size.width as usize;
-            if rect.contains_xy(x as f64, y as f64) {
+            if rect.contains_point_f64(x as f64, y as f64) {
                 pixel.copy_from_slice(&color.as_u8_ref());
             }
         }
